@@ -1,0 +1,58 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;NON_KEYWORDS=VALUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        '[format_sql]': true
+        dialect: org.hibernate.dialect.H2Dialect
+        '[multiTenancy]': NONE
+
+  flyway:
+    enabled: false
+
+  h2:
+    console:
+      enabled: false
+
+  cache:
+    type: simple
+
+logging:
+  level:
+    '[com.licensing]': DEBUG
+    '[org.springframework.security]': WARN
+    '[org.hibernate.SQL]': WARN
+    '[org.testcontainers]': INFO
+
+security:
+  jwt:
+    enabled: false
+    secret: test-secret-key-that-is-long-enough-for-hmac-256-algorithm
+    expiration: 3600000
+
+license:
+  signing:
+    current-key-id: key-1
+    backup-key-id: key-2
+    keys:
+      key-1:
+        private-key: MC4CAQAwBQYDK2VwBCIEIH+h7WCYWgV5ZH9XQw7bF1RQ6EaF7jBMGxKLh1gCDqA2
+        public-key: MCowBQYDK2VwAyEAq2XPhq4jgQ7bF1RQ6EaF7jBMGxKLh1gCDqA2MTQzNzE=
+        expiry-date: 2025-12-31T23:59:59
+      key-2:
+        private-key: MC4CAQAwBQYDK2VwBCIEIM4jxF7GxKLh1gCDqA2MTQzNzEyWgV5ZH9XQw7bF1RQ
+        public-key: MCowBQYDK2VwAyEAm8F1RQ6EaF7jBMGxKLh1gCDqA2MTQzNzE2XPhq4jgQ7b
+        expiry-date: 2025-12-31T23:59:59
+  encryption:
+    seal-box-key: dGVzdC1zZWFsLWJveC1rZXktMzItYnl0ZXMtbG9uZw==
+  rate-limiting:
+    requests-per-hour: 10000
+    burst-size: 100

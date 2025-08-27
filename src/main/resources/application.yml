@@ -1,0 +1,117 @@
+spring:
+  application:
+    name: license-management-api
+  
+  datasource:
+    url: jdbc:postgresql://localhost:5432/license_management
+    username: ${DB_USERNAME:license_user}
+    password: ${DB_PASSWORD:license_pass}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        use_sql_comments: false
+        jdbc:
+          time_zone: UTC
+        multiTenancy: SCHEMA
+        tenant_identifier_resolver: com.licensing.config.tenant.CurrentTenantResolver
+        multi_tenant_connection_provider: com.licensing.config.tenant.TenantConnectionProvider
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 5
+
+  jackson:
+    time-zone: UTC
+    date-format: yyyy-MM-dd'T'HH:mm:ss.SSS'Z'
+    default-property-inclusion: non_null
+
+  security:
+    user:
+      name: admin
+      password: disabled
+
+server:
+  port: 8080
+  compression:
+    enabled: true
+  error:
+    include-stacktrace: never
+    include-message: always
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: ${MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE:health,info,metrics}
+  endpoint:
+    health:
+      show-details: when-authorized
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+logging:
+  level:
+    com.licensing: INFO
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{tenantId}] [%X{traceId}] %logger{36} - %msg%n"
+
+license:
+  signing:
+    current-key-id: ${CURRENT_KEY_ID:key-1}
+    backup-key-id: ${BACKUP_KEY_ID:key-2}
+    keys:
+      key-1:
+        private-key: ${ED25519_PRIVATE_KEY_1}
+        public-key: ${ED25519_PUBLIC_KEY_1}
+      key-2:
+        private-key: ${ED25519_PRIVATE_KEY_2}
+        public-key: ${ED25519_PUBLIC_KEY_2}
+  encryption:
+    seal-box-key: ${SEAL_BOX_KEY}
+  rate-limiting:
+    requests-per-hour: ${RATE_LIMIT_REQUESTS_PER_HOUR:1000}
+    burst-size: ${RATE_LIMIT_BURST_SIZE:50}
+  webhook:
+    base-url: ${WEBHOOK_BASE_URL:http://localhost:8080/webhooks}
+  audit:
+    retention-days: ${AUDIT_RETENTION_DAYS:90}
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /docs
+    operations-sorter: alpha
+    tags-sorter: alpha
+    doc-expansion: none

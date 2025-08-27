@@ -1,0 +1,204 @@
+package com.licensing.service;
+
+import com.licensing.domain.License;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Map;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+@ExtendWith(MockitoExtension.class)
+class LicenseSigningServiceTest {
+
+  private LicenseSigningService licenseSigningService;
+
+  @BeforeEach
+  void setUp() {
+    
+    String testPrivateKey = "MC4CAQAwBQYDK2VwBCIEIH+h7WCYWgV5ZH9XQw7bF1RQ6EaF7jBMGxKLh1gCDqA2";
+    String testPublicKey = "MCowBQYDK2VwAyEAq2XPhq4jgQ7bF1RQ6EaF7jBMGxKLh1gCDqA2MTQzNzE=";
+
+    licenseSigningService = new LicenseSigningService(testPrivateKey, testPublicKey);
+  }
+
+  @Test
+  void shouldSignLicenseAndGenerateValidSignature() {
+    License license = createValidLicense();
+
+    String signature = licenseSigningService.signLicense(license);
+
+    assertThat(signature).isNotNull();
+    assertThat(signature).isNotEmpty();
+    assertThat(signature).doesNotContain(" ");
+    assertThat(signature.length()).isGreaterThan(50);
+  }
+
+  @Test
+  void shouldVerifyValidSignature() {
+    License license = createValidLicense();
+    String signature = licenseSigningService.signLicense(license);
+
+    boolean isValid = licenseSigningService.verifySignature(license, signature);
+
+    assertThat(isValid).isTrue();
+  }
+
+  @Test
+  void shouldFailVerificationForInvalidSignature() {
+    License license = createValidLicense();
+    String invalidSignature = "invalid-signature";
+
+    boolean isValid = licenseSigningService.verifySignature(license, invalidSignature);
+
+    assertThat(isValid).isFalse();
+  }
+
+  @Test
+  void shouldFailVerificationForModifiedLicense() {
+    License license = createValidLicense();
+    String signature = licenseSigningService.signLicense(license);
+
+    
+    license.updateFeatures(Map.of("modifiedFeature", true));
+
+    boolean isValid = licenseSigningService.verifySignature(license, signature);
+
+    assertThat(isValid).isFalse();
+  }
+
+  @Test
+  void shouldGenerateDifferentSignaturesForDifferentLicenses() {
+    License license1 = createValidLicense();
+    License license2 = new License(
+        UUID.randomUUID(),
+        "Different Product",
+        "different@example.com",
+        Instant.now().plus(30, ChronoUnit.DAYS),
+        Map.of("feature2", false));
+
+    String signature1 = licenseSigningService.signLicense(license1);
+    String signature2 = licenseSigningService.signLicense(license2);
+
+    assertThat(signature1).isNotEqualTo(signature2);
+  }
+
+  @Test
+  void shouldGenerateDeterministicSignatures() {
+    License license = createValidLicense();
+
+    String signature1 = licenseSigningService.signLicense(license);
+    String signature2 = licenseSigningService.signLicense(license);
+
+    assertThat(signature1).isEqualTo(signature2);
+  }
+
+  @Test
+  void shouldCreateLicensePayload() {
+    License license = createValidLicense();
+
+    String payload = licenseSigningService.createLicensePayload(license);
+
+    assertThat(payload).isNotNull();
+    assertThat(payload).contains(license.getId().toString());
+    assertThat(payload).contains(license.getProductName());
+    assertThat(payload).contains(license.getCustomerEmail());
+    assertThat(payload).contains(license.getExpiryDate().toString());
+  }
+
+  @Test
+  void shouldThrowExceptionWhenSigningNullLicense() {
+    assertThatThrownBy(() -> licenseSigningService.signLicense(null))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("License cannot be null");
+  }
+
+  @Test
+  void shouldThrowExceptionWhenVerifyingWithNullLicense() {
+    assertThatThrownBy(() -> licenseSigningService.verifySignature(null, "signature"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("License cannot be null");
+  }
+
+  @Test
+  void shouldThrowExceptionWhenVerifyingWithNullSignature() {
+    License license = createValidLicense();
+
+    assertThatThrownBy(() -> licenseSigningService.verifySignature(license, null))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Signature cannot be null or empty");
+  }
+
+  @Test
+  void shouldThrowExceptionWhenVerifyingWithEmptySignature() {
+    License license = createValidLicense();
+
+    assertThatThrownBy(() -> licenseSigningService.verifySignature(license, ""))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Signature cannot be null or empty");
+  }
+
+  @Test
+  void shouldCreateSignedLicenseToken() {
+    License license = createValidLicense();
+
+    String token = licenseSigningService.createSignedLicenseToken(license);
+
+    assertThat(token).isNotNull();
+    assertThat(token).isNotEmpty();
+    assertThat(token.split("\\.")).hasSize(3); 
+  }
+
+  @Test
+  void shouldVerifySignedLicenseToken() {
+    License license = createValidLicense();
+    String token = licenseSigningService.createSignedLicenseToken(license);
+
+    boolean isValid = licenseSigningService.verifyLicenseToken(token);
+
+    assertThat(isValid).isTrue();
+  }
+
+  @Test
+  void shouldFailVerificationForInvalidToken() {
+    String invalidToken = "invalid.token.signature";
+
+    boolean isValid = licenseSigningService.verifyLicenseToken(invalidToken);
+
+    assertThat(isValid).isFalse();
+  }
+
+  @Test
+  void shouldThrowExceptionWhenExtractingFromToken() {
+    License originalLicense = createValidLicense();
+    String token = licenseSigningService.createSignedLicenseToken(originalLicense);
+
+    assertThatThrownBy(() -> licenseSigningService.extractLicenseFromToken(token))
+        .isInstanceOf(UnsupportedOperationException.class)
+        .hasMessage("License extraction not fully implemented");
+  }
+
+  @Test
+  void shouldThrowExceptionWhenExtractingFromInvalidToken() {
+    String invalidToken = "invalid.token.signature";
+
+    assertThatThrownBy(() -> licenseSigningService.extractLicenseFromToken(invalidToken))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Invalid license token");
+  }
+
+  private License createValidLicense() {
+    return new License(
+        UUID.randomUUID(),
+        "Test Product",
+        "customer@example.com",
+        Instant.now().plus(365, ChronoUnit.DAYS),
+        Map.of("feature1", true, "maxUsers", 10));
+  }
+}

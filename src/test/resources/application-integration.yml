@@ -1,0 +1,52 @@
+spring:
+  datasource:
+    url: jdbc:tc:postgresql:16-alpine:///testdb
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+  
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        '[format_sql]': true
+
+  data:
+    redis:
+      host: localhost
+      port: 0  
+
+  flyway:
+    enabled: true
+
+logging:
+  level:
+    '[com.licensing]': DEBUG
+    '[org.springframework.security]': DEBUG
+    '[org.hibernate.SQL]': DEBUG
+    '[org.testcontainers]': INFO
+
+security:
+  jwt:
+    enabled: true
+    secret: test-secret-key-that-is-long-enough-for-hmac-256-algorithm
+    expiration: 3600000
+
+license:
+  signing:
+    current-key-id: test-key-1
+    backup-key-id: test-key-2
+    keys:
+      test-key-1:
+        private-key: MC4CAQAwBQYDK2VwBCIEIH+h7WCYWgV5ZH9XQw7bF1RQ6EaF7jBMGxKLh1gCDqA2
+        public-key: MCowBQYDK2VwAyEAq2XPhq4jgQ7bF1RQ6EaF7jBMGxKLh1gCDqA2MTQzNzE=
+        expiry-date: 2025-12-31T23:59:59
+      test-key-2:
+        private-key: MC4CAQAwBQYDK2VwBCIEIM4jxF7GxKLh1gCDqA2MTQzNzEyWgV5ZH9XQw7bF1RQ
+        public-key: MCowBQYDK2VwAyEAm8F1RQ6EaF7jBMGxKLh1gCDqA2MTQzNzE2XPhq4jgQ7b
+        expiry-date: 2025-12-31T23:59:59
+  encryption:
+    seal-box-key: dGVzdC1zZWFsLWJveC1rZXktMzItYnl0ZXMtbG9uZw==
+  rate-limiting:
+    requests-per-hour: 10000
+    burst-size: 100

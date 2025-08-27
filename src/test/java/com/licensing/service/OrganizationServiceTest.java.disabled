@@ -1,0 +1,302 @@
+package com.licensing.service;
+
+import com.licensing.config.tenant.TenantContext;
+import com.licensing.domain.AuditLog;
+import com.licensing.domain.Organization;
+import com.licensing.domain.Plan;
+import com.licensing.repository.AuditLogRepository;
+import com.licensing.repository.OrganizationRepository;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class OrganizationServiceTest {
+
+  @Mock
+  private OrganizationRepository organizationRepository;
+
+  @Mock
+  private AuditLogRepository auditLogRepository;
+
+  @InjectMocks
+  private OrganizationService organizationService;
+
+  private final String tenantId = "test-tenant";
+  private final String userId = "user-123";
+
+  @BeforeEach
+  void setUp() {
+    TenantContext.setCurrentTenant(tenantId);
+  }
+
+  @AfterEach
+  void tearDown() {
+    TenantContext.clear();
+  }
+
+  @Test
+  void shouldCreateOrganization() {
+    String name = "Acme Corporation";
+    String contactEmail = "admin@acme.com";
+    Plan plan = Plan.ENTERPRISE;
+
+    Organization expectedOrg = new Organization(name, contactEmail, tenantId, plan);
+    when(organizationRepository.existsByContactEmail(contactEmail)).thenReturn(false);
+    when(organizationRepository.save(any(Organization.class))).thenReturn(expectedOrg);
+
+    Organization result = organizationService.createOrganization(name, contactEmail, plan, userId);
+
+    assertThat(result.getName()).isEqualTo(name);
+    assertThat(result.getContactEmail()).isEqualTo(contactEmail);
+    assertThat(result.getPlan()).isEqualTo(plan);
+    assertThat(result.getTenantId()).isEqualTo(tenantId);
+
+    verify(organizationRepository).existsByContactEmail(contactEmail);
+    verify(organizationRepository).save(any(Organization.class));
+    verify(auditLogRepository).save(any(AuditLog.class));
+  }
+
+  @Test
+  void shouldThrowExceptionWhenCreatingDuplicateOrganization() {
+    String name = "Duplicate Corp";
+    String contactEmail = "duplicate@example.com";
+    Plan plan = Plan.BASIC;
+
+    when(organizationRepository.existsByContactEmail(contactEmail)).thenReturn(true);
+
+    assertThatThrownBy(() -> organizationService.createOrganization(name, contactEmail, plan, userId))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Organization with email duplicate@example.com already exists");
+
+    verify(organizationRepository).existsByContactEmail(contactEmail);
+    verify(organizationRepository, never()).save(any());
+    verify(auditLogRepository, never()).save(any());
+  }
+
+  @Test
+  void shouldFindOrganizationById() {
+    UUID orgId = UUID.randomUUID();
+    Organization org = new Organization("Test Corp", "test@example.com", tenantId, Plan.BASIC);
+    when(organizationRepository.findById(orgId)).thenReturn(Optional.of(org));
+
+    Optional<Organization> result = organizationService.findById(orgId);
+
+    assertThat(result).isPresent();
+    assertThat(result.get().getName()).isEqualTo("Test Corp");
+    verify(organizationRepository).findById(orgId);
+  }
+
+  @Test
+  void shouldReturnEmptyWhenOrganizationNotFound() {
+    UUID orgId = UUID.randomUUID();
+    when(organizationRepository.findById(orgId)).thenReturn(Optional.empty());
+
+    Optional<Organization> result = organizationService.findById(orgId);
+
+    assertThat(result).isEmpty();
+    verify(organizationRepository).findById(orgId);
+  }
+
+  @Test
+  void shouldFindOrganizationByContactEmail() {
+    String email = "find@example.com";
+    Organization org = new Organization("Find Corp", email, tenantId, Plan.BASIC);
+    when(organizationRepository.findByContactEmail(email)).thenReturn(Optional.of(org));
+
+    Optional<Organization> result = organizationService.findByContactEmail(email);
+
+    assertThat(result).isPresent();
+    assertThat(result.get().getContactEmail()).isEqualTo(email);
+    verify(organizationRepository).findByContactEmail(email);
+  }
+
+  @Test
+  void shouldUpdateOrganization() {
+    UUID orgId = UUID.randomUUID();
+    Organization existingOrg = new Organization("Old Name", "old@example.com", tenantId, Plan.BASIC);
+
+    String newName = "New Name";
+    String newEmail = "new@example.com";
+    Plan newPlan = Plan.PROFESSIONAL;
+
+    when(organizationRepository.findById(orgId)).thenReturn(Optional.of(existingOrg));
+    when(organizationRepository.existsByContactEmail(newEmail)).thenReturn(false);
+    when(organizationRepository.save(any(Organization.class))).thenReturn(existingOrg);
+
+    Organization result = organizationService.updateOrganization(orgId, newName, newEmail, newPlan, userId);
+
+    assertThat(result.getName()).isEqualTo(newName);
+    assertThat(result.getContactEmail()).isEqualTo(newEmail);
+    assertThat(result.getPlan()).isEqualTo(newPlan);
+
+    verify(organizationRepository).findById(orgId);
+    verify(organizationRepository).existsByContactEmail(newEmail);
+    verify(organizationRepository).save(existingOrg);
+    verify(auditLogRepository).save(any(AuditLog.class));
+  }
+
+  @Test
+  void shouldThrowExceptionWhenUpdatingToExistingEmail() {
+    UUID orgId = UUID.randomUUID();
+    Organization existingOrg = new Organization("Test Corp", "test@example.com", tenantId, Plan.BASIC);
+    String conflictingEmail = "conflict@example.com";
+
+    when(organizationRepository.findById(orgId)).thenReturn(Optional.of(existingOrg));
+    when(organizationRepository.existsByContactEmail(conflictingEmail)).thenReturn(true);
+
+    assertThatThrownBy(
+        () -> organizationService.updateOrganization(orgId, "New Name", conflictingEmail, Plan.BASIC, userId))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Organization with email conflict@example.com already exists");
+
+    verify(organizationRepository).findById(orgId);
+    verify(organizationRepository).existsByContactEmail(conflictingEmail);
+    verify(organizationRepository, never()).save(any());
+  }
+
+  @Test
+  void shouldThrowExceptionWhenUpdatingNonexistentOrganization() {
+    UUID orgId = UUID.randomUUID();
+    when(organizationRepository.findById(orgId)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(
+        () -> organizationService.updateOrganization(orgId, "Name", "email@example.com", Plan.BASIC, userId))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Organization not found");
+
+    verify(organizationRepository).findById(orgId);
+    verify(organizationRepository, never()).save(any());
+  }
+
+  @Test
+  void shouldDeactivateOrganization() {
+    UUID orgId = UUID.randomUUID();
+    Organization org = new Organization("Test Corp", "test@example.com", tenantId, Plan.BASIC);
+
+    when(organizationRepository.findById(orgId)).thenReturn(Optional.of(org));
+    when(organizationRepository.save(any(Organization.class))).thenReturn(org);
+
+    organizationService.deactivateOrganization(orgId, userId);
+
+    assertThat(org.isActive()).isFalse();
+    verify(organizationRepository).findById(orgId);
+    verify(organizationRepository).save(org);
+    verify(auditLogRepository).save(any(AuditLog.class));
+  }
+
+  @Test
+  void shouldActivateOrganization() {
+    UUID orgId = UUID.randomUUID();
+    Organization org = new Organization("Test Corp", "test@example.com", tenantId, Plan.BASIC);
+    org.deactivate();
+
+    when(organizationRepository.findById(orgId)).thenReturn(Optional.of(org));
+    when(organizationRepository.save(any(Organization.class))).thenReturn(org);
+
+    organizationService.activateOrganization(orgId, userId);
+
+    assertThat(org.isActive()).isTrue();
+    verify(organizationRepository).findById(orgId);
+    verify(organizationRepository).save(org);
+    verify(auditLogRepository).save(any(AuditLog.class));
+  }
+
+  @Test
+  void shouldFindActiveOrganizations() {
+    List<Organization> activeOrgs = List.of(
+        new Organization("Active Corp 1", "active1@example.com", tenantId, Plan.BASIC),
+        new Organization("Active Corp 2", "active2@example.com", tenantId, Plan.PROFESSIONAL));
+
+    when(organizationRepository.findByActiveTrue()).thenReturn(activeOrgs);
+
+    List<Organization> result = organizationService.findActiveOrganizations();
+
+    assertThat(result).hasSize(2);
+    assertThat(result.get(0).getName()).isEqualTo("Active Corp 1");
+    assertThat(result.get(1).getName()).isEqualTo("Active Corp 2");
+    verify(organizationRepository).findByActiveTrue();
+  }
+
+  @Test
+  void shouldFindOrganizationsByPlan() {
+    Plan plan = Plan.ENTERPRISE;
+    List<Organization> enterpriseOrgs = List.of(
+        new Organization("Enterprise Corp", "enterprise@example.com", tenantId, plan));
+
+    when(organizationRepository.findByPlan(plan)).thenReturn(enterpriseOrgs);
+
+    List<Organization> result = organizationService.findByPlan(plan);
+
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getPlan()).isEqualTo(plan);
+    verify(organizationRepository).findByPlan(plan);
+  }
+
+  @Test
+  void shouldFindAllOrganizationsWithPagination() {
+    Pageable pageable = PageRequest.of(0, 10);
+    List<Organization> orgs = List.of(
+        new Organization("Corp 1", "corp1@example.com", tenantId, Plan.BASIC),
+        new Organization("Corp 2", "corp2@example.com", tenantId, Plan.PROFESSIONAL));
+    Page<Organization> page = new PageImpl<>(orgs, pageable, 2);
+
+    when(organizationRepository.findAll(pageable)).thenReturn(page);
+
+    Page<Organization> result = organizationService.findAll(pageable);
+
+    assertThat(result.getContent()).hasSize(2);
+    assertThat(result.getTotalElements()).isEqualTo(2);
+    verify(organizationRepository).findAll(pageable);
+  }
+
+  @Test
+  void shouldCountActiveOrganizations() {
+    when(organizationRepository.countByActiveTrue()).thenReturn(5L);
+
+    long count = organizationService.countActiveOrganizations();
+
+    assertThat(count).isEqualTo(5);
+    verify(organizationRepository).countByActiveTrue();
+  }
+
+  @Test
+  void shouldCreateAuditLogWhenCreatingOrganization() {
+    String name = "Audit Test Corp";
+    String contactEmail = "audit@example.com";
+    Plan plan = Plan.BASIC;
+
+    Organization org = new Organization(name, contactEmail, tenantId, plan);
+    when(organizationRepository.existsByContactEmail(contactEmail)).thenReturn(false);
+    when(organizationRepository.save(any(Organization.class))).thenReturn(org);
+
+    organizationService.createOrganization(name, contactEmail, plan, userId);
+
+    ArgumentCaptor<AuditLog> auditCaptor = ArgumentCaptor.forClass(AuditLog.class);
+    verify(auditLogRepository).save(auditCaptor.capture());
+
+    AuditLog auditLog = auditCaptor.getValue();
+    assertThat(auditLog.getEntityType()).isEqualTo("Organization");
+    assertThat(auditLog.getAction()).isEqualTo("CREATE");
+    assertThat(auditLog.getUserId()).isEqualTo(userId);
+    assertThat(auditLog.getTenantId()).isEqualTo(tenantId);
+  }
+}

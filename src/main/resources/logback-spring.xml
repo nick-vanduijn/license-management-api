@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    
+    <!-- Define properties -->
+    <property name="LOG_FILE" value="${LOG_FILE:-/var/log/license-management-api/application.log}"/>
+    <property name="APPLICATION_NAME" value="license-management-api"/>
+    
+    <!-- Console appender for local development -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp/>
+                <logLevel/>
+                <loggerName/>
+                <message/>
+                <mdc/>
+                <arguments/>
+                <stackTrace/>
+                <pattern>
+                    <pattern>
+                        {
+                        "application": "${APPLICATION_NAME}",
+                        "version": "@project.version@",
+                        "environment": "${ENVIRONMENT:-development}",
+                        "instance": "${HOSTNAME:-localhost}",
+                        "tenant": "%X{tenantId:-unknown}",
+                        "user": "%X{userId:-anonymous}",
+                        "traceId": "%X{traceId:-}",
+                        "spanId": "%X{spanId:-}"
+                        }
+                    </pattern>
+                </pattern>
+            </providers>
+        </encoder>
+    </appender>
+
+    <!-- File appender for production -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_FILE}</file>
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp/>
+                <logLevel/>
+                <loggerName/>
+                <message/>
+                <mdc/>
+                <arguments/>
+                <stackTrace/>
+                <pattern>
+                    <pattern>
+                        {
+                        "application": "${APPLICATION_NAME}",
+                        "version": "@project.version@",
+                        "environment": "${ENVIRONMENT:-production}",
+                        "instance": "${HOSTNAME:-unknown}",
+                        "tenant": "%X{tenantId:-unknown}",
+                        "user": "%X{userId:-anonymous}",
+                        "traceId": "%X{traceId:-}",
+                        "spanId": "%X{spanId:-}"
+                        }
+                    </pattern>
+                </pattern>
+            </providers>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_FILE}.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>10GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- Async wrapper for better performance -->
+    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="FILE"/>
+        <queueSize>512</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>false</includeCallerData>
+    </appender>
+
+    <!-- Profile-specific configurations -->
+    <springProfile name="!production">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+        <logger name="com.licensing" level="DEBUG"/>
+        <logger name="org.springframework.security" level="DEBUG"/>
+    </springProfile>
+
+    <springProfile name="production">
+        <root level="WARN">
+            <appender-ref ref="ASYNC_FILE"/>
+        </root>
+        <logger name="com.licensing" level="INFO"/>
+        <logger name="org.springframework.security" level="WARN"/>
+        <logger name="org.hibernate.SQL" level="WARN"/>
+        <logger name="org.springframework.web" level="WARN"/>
+        
+        <!-- Security-sensitive loggers - keep at WARN or higher -->
+        <logger name="org.springframework.security.web.authentication" level="WARN"/>
+        <logger name="org.springframework.security.access" level="WARN"/>
+    </springProfile>
+
+    <!-- Audit logger for security events -->
+    <logger name="AUDIT" level="INFO" additivity="false">
+        <springProfile name="production">
+            <appender-ref ref="ASYNC_FILE"/>
+        </springProfile>
+        <springProfile name="!production">
+            <appender-ref ref="CONSOLE"/>
+        </springProfile>
+    </logger>
+
+    <!-- Performance logger -->
+    <logger name="PERFORMANCE" level="INFO" additivity="false">
+        <springProfile name="production">
+            <appender-ref ref="ASYNC_FILE"/>
+        </springProfile>
+        <springProfile name="!production">
+            <appender-ref ref="CONSOLE"/>
+        </springProfile>
+    </logger>
+</configuration>

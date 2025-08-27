@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp>
+                    <timeZone>UTC</timeZone>
+                </timestamp>
+                <version/>
+                <logLevel/>
+                <message/>
+                <mdc/>
+                <arguments/>
+                <stackTrace/>
+                <pattern>
+                    <pattern>
+                        {
+                            "application": "license-management-api",
+                            "version": "@project.version@",
+                            "environment": "test",
+                            "instance": "${HOSTNAME:-localhost}",
+                            "tenant": "%X{tenantId:-unknown}",
+                            "user": "%X{userId:-anonymous}",
+                            "traceId": "%X{traceId:-}",
+                            "spanId": "%X{spanId:-}"
+                        }
+                    </pattern>
+                </pattern>
+            </providers>
+        </encoder>
+    </appender>
+
+    <logger name="com.licensing" level="DEBUG" />
+    <logger name="org.springframework.security" level="WARN" />
+    <logger name="org.hibernate.SQL" level="WARN" />
+    <logger name="org.testcontainers" level="INFO" />
+    <logger name="org.springframework.test" level="WARN" />
+    
+    <root level="INFO">
+        <appender-ref ref="CONSOLE" />
+    </root>
+</configuration>

@@ -1,0 +1,147 @@
+package com.licensing.config.health;
+
+import org.springframework.boot.actuator.health.Health;
+import org.springframework.boot.actuator.health.HealthIndicator;
+import org.springframework.data.redis.connection.RedisConnection;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.stereotype.Component;
+
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.SQLException;
+
+/**
+ * Custom health indicator that checks database and Redis connectivity.
+ * Provides detailed health information for production monitoring.
+ */
+@Component
+public class CustomHealthIndicator implements HealthIndicator {
+
+    private final DataSource dataSource;
+    private final RedisConnectionFactory redisConnectionFactory;
+
+    public CustomHealthIndicator(DataSource dataSource, RedisConnectionFactory redisConnectionFactory) {
+        this.dataSource = dataSource;
+        this.redisConnectionFactory = redisConnectionFactory;
+    }
+
+    @Override
+    public Health health() {
+        Health.Builder builder = Health.up();
+        
+        
+        checkDatabase(builder);
+        
+        
+        checkRedis(builder);
+        
+        
+        checkDiskSpace(builder);
+        
+        
+        checkMemory(builder);
+
+        return builder.build();
+    }
+
+    private void checkDatabase(Health.Builder builder) {
+        try (Connection connection = dataSource.getConnection()) {
+            if (connection.isValid(3)) { 
+                builder.withDetail("database", "Available")
+                       .withDetail("database.connection.valid", true);
+            } else {
+                builder.down()
+                       .withDetail("database", "Connection invalid")
+                       .withDetail("database.connection.valid", false);
+            }
+        } catch (SQLException e) {
+            builder.down()
+                   .withDetail("database", "Unavailable")
+                   .withDetail("database.error", e.getMessage())
+                   .withDetail("database.connection.valid", false);
+        }
+    }
+
+    private void checkRedis(Health.Builder builder) {
+        try (RedisConnection connection = redisConnectionFactory.getConnection()) {
+            String response = connection.ping();
+            if ("PONG".equals(response)) {
+                builder.withDetail("redis", "Available")
+                       .withDetail("redis.ping", "PONG");
+            } else {
+                builder.down()
+                       .withDetail("redis", "Ping failed")
+                       .withDetail("redis.ping", response);
+            }
+        } catch (Exception e) {
+            builder.down()
+                   .withDetail("redis", "Unavailable")
+                   .withDetail("redis.error", e.getMessage());
+        }
+    }
+
+    private void checkDiskSpace(Health.Builder builder) {
+        try {
+            java.io.File root = new java.io.File("/");
+            long totalSpace = root.getTotalSpace();
+            long freeSpace = root.getFreeSpace();
+            long usedSpace = totalSpace - freeSpace;
+            double usagePercentage = (double) usedSpace / totalSpace * 100;
+
+            builder.withDetail("diskSpace.total", formatBytes(totalSpace))
+                   .withDetail("diskSpace.free", formatBytes(freeSpace))
+                   .withDetail("diskSpace.used", formatBytes(usedSpace))
+                   .withDetail("diskSpace.usagePercentage", String.format("%.2f%%", usagePercentage));
+
+            if (usagePercentage > 90) {
+                builder.down()
+                       .withDetail("diskSpace.status", "Critical - Over 90% used");
+            } else if (usagePercentage > 80) {
+                builder.withDetail("diskSpace.status", "Warning - Over 80% used");
+            } else {
+                builder.withDetail("diskSpace.status", "Sufficient");
+            }
+        } catch (Exception e) {
+            builder.down()
+                   .withDetail("diskSpace", "Unable to check")
+                   .withDetail("diskSpace.error", e.getMessage());
+        }
+    }
+
+    private void checkMemory(Health.Builder builder) {
+        try {
+            Runtime runtime = Runtime.getRuntime();
+            long maxMemory = runtime.maxMemory();
+            long totalMemory = runtime.totalMemory();
+            long freeMemory = runtime.freeMemory();
+            long usedMemory = totalMemory - freeMemory;
+            double usagePercentage = (double) usedMemory / maxMemory * 100;
+
+            builder.withDetail("memory.max", formatBytes(maxMemory))
+                   .withDetail("memory.total", formatBytes(totalMemory))
+                   .withDetail("memory.used", formatBytes(usedMemory))
+                   .withDetail("memory.free", formatBytes(freeMemory))
+                   .withDetail("memory.usagePercentage", String.format("%.2f%%", usagePercentage));
+
+            if (usagePercentage > 90) {
+                builder.down()
+                       .withDetail("memory.status", "Critical - Over 90% used");
+            } else if (usagePercentage > 80) {
+                builder.withDetail("memory.status", "Warning - Over 80% used");
+            } else {
+                builder.withDetail("memory.status", "Sufficient");
+            }
+        } catch (Exception e) {
+            builder.down()
+                   .withDetail("memory", "Unable to check")
+                   .withDetail("memory.error", e.getMessage());
+        }
+    }
+
+    private String formatBytes(long bytes) {
+        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1024 * 1024) return String.format("%.2f KB", bytes / 1024.0);
+        if (bytes < 1024 * 1024 * 1024) return String.format("%.2f MB", bytes / (1024.0 * 1024.0));
+        return String.format("%.2f GB", bytes / (1024.0 * 1024.0 * 1024.0));
+    }
+}

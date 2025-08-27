@@ -1,0 +1,192 @@
+{"properties": [
+  {
+    "name": "security.jwt.enabled",
+    "type": "java.lang.String",
+    "description": "A description for 'security.jwt.enabled'"
+  },
+  {
+    "name": "server.tomcat.max-threads",
+    "type": "java.lang.String",
+    "description": "A description for 'server.tomcat.max-threads'"
+  },
+  {
+    "name": "server.tomcat.min-spare-threads",
+    "type": "java.lang.String",
+    "description": "A description for 'server.tomcat.min-spare-threads'"
+  },
+  {
+    "name": "license.signing.private-key",
+    "type": "java.lang.String",
+    "description": "A description for 'license.signing.private-key'"
+  },
+  {
+    "name": "license.signing.public-key",
+    "type": "java.lang.String",
+    "description": "A description for 'license.signing.public-key'"
+  },
+  {
+    "name": "license.security.jwt.enabled",
+    "type": "java.lang.String",
+    "description": "A description for 'license.security.jwt.enabled'"
+  },
+  {
+    "name": "license.api.rate-limit.enabled",
+    "type": "java.lang.String",
+    "description": "A description for 'license.api.rate-limit.enabled'"
+  },
+  {
+    "name": "security.jwt.secret",
+    "type": "java.lang.String",
+    "description": "A description for 'security.jwt.secret'"
+  },
+  {
+    "name": "security.jwt.expiration",
+    "type": "java.lang.String",
+    "description": "A description for 'security.jwt.expiration'"
+  },
+  {
+    "name": "license.signing.current-key-id",
+    "type": "java.lang.String",
+    "description": "A description for 'license.signing.current-key-id'"
+  },
+  {
+    "name": "license.signing.backup-key-id",
+    "type": "java.lang.String",
+    "description": "A description for 'license.signing.backup-key-id'"
+  },
+  {
+    "name": "license.signing.keys.test-key-1.private-key",
+    "type": "java.lang.String",
+    "description": "A description for 'license.signing.keys.test-key-1.private-key'"
+  },
+  {
+    "name": "license.signing.keys.test-key-1.private-key",
+    "type": "java.lang.String",
+    "description": "A description for 'license.signing.keys.test-key-1.private-key'"
+  },
+  {
+    "name": "license.signing.keys.test-key-1.expiry-date",
+    "type": "java.lang.String",
+    "description": "A description for 'license.signing.keys.test-key-1.expiry-date'"
+  },
+  {
+    "name": "license.signing.keys.test-key-1.public-key",
+    "type": "java.lang.String",
+    "description": "A description for 'license.signing.keys.test-key-1.public-key'"
+  },
+  {
+    "name": "license.signing.keys.test-key-2.private-key",
+    "type": "java.lang.String",
+    "description": "A description for 'license.signing.keys.test-key-2.private-key'"
+  },
+  {
+    "name": "license.encryption.seal-box-key",
+    "type": "java.lang.String",
+    "description": "A description for 'license.encryption.seal-box-key'"
+  },
+  {
+    "name": "license.rate-limiting.requests-per-hour",
+    "type": "java.lang.String",
+    "description": "A description for 'license.rate-limiting.requests-per-hour'"
+  },
+  {
+    "name": "license.signing.keys.test-key-2.expiry-date",
+    "type": "java.lang.String",
+    "description": "A description for 'license.signing.keys.test-key-2.expiry-date'"
+  },
+  {
+    "name": "license.signing.keys.test-key-2.public-key",
+    "type": "java.lang.String",
+    "description": "A description for 'license.signing.keys.test-key-2.public-key'"
+  },
+  {
+    "name": "license.rate-limiting.burst-size",
+    "type": "java.lang.String",
+    "description": "A description for 'license.rate-limiting.burst-size'"
+  },
+  {
+    "name": "license.security.jwt.expiration",
+    "type": "java.lang.String",
+    "description": "A description for 'license.security.jwt.expiration'"
+  },
+  {
+    "name": "license.security.cors.enabled",
+    "type": "java.lang.String",
+    "description": "A description for 'license.security.cors.enabled'"
+  },
+  {
+    "name": "license.security.jwt.secret",
+    "type": "java.lang.String",
+    "description": "A description for 'license.security.jwt.secret'"
+  },
+  {
+    "name": "license.security.cors.allowed-methods",
+    "type": "java.lang.String",
+    "description": "A description for 'license.security.cors.allowed-methods'"
+  },
+  {
+    "name": "license.security.cors.max-age",
+    "type": "java.lang.String",
+    "description": "A description for 'license.security.cors.max-age'"
+  },
+  {
+    "name": "license.security.cors.allow-credentials",
+    "type": "java.lang.String",
+    "description": "A description for 'license.security.cors.allow-credentials'"
+  },
+  {
+    "name": "license.security.cors.allowed-headers",
+    "type": "java.lang.String",
+    "description": "A description for 'license.security.cors.allowed-headers'"
+  },
+  {
+    "name": "license.security.cors.allowed-origins",
+    "type": "java.lang.String",
+    "description": "A description for 'license.security.cors.allowed-origins'"
+  },
+  {
+    "name": "license.api.rate-limit.burst-capacity",
+    "type": "java.lang.String",
+    "description": "A description for 'license.api.rate-limit.burst-capacity'"
+  },
+  {
+    "name": "license.api.rate-limit.requests-per-minute",
+    "type": "java.lang.String",
+    "description": "A description for 'license.api.rate-limit.requests-per-minute'"
+  },
+  {
+    "name": "spring.security.require-ssl",
+    "type": "java.lang.String",
+    "description": "A description for 'spring.security.require-ssl'"
+  },
+  {
+    "name": "license.signing.keys.key-1.private-key",
+    "type": "java.lang.String",
+    "description": "A description for 'license.signing.keys.key-1.private-key'"
+  },
+  {
+    "name": "license.signing.keys.key-2.private-key",
+    "type": "java.lang.String",
+    "description": "A description for 'license.signing.keys.key-2.private-key'"
+  },
+  {
+    "name": "license.signing.keys.key-1.expiry-date",
+    "type": "java.lang.String",
+    "description": "A description for 'license.signing.keys.key-1.expiry-date'"
+  },
+  {
+    "name": "license.signing.keys.key-1.public-key",
+    "type": "java.lang.String",
+    "description": "A description for 'license.signing.keys.key-1.public-key'"
+  },
+  {
+    "name": "license.signing.keys.key-2.public-key",
+    "type": "java.lang.String",
+    "description": "A description for 'license.signing.keys.key-2.public-key'"
+  },
+  {
+    "name": "license.signing.keys.key-2.expiry-date",
+    "type": "java.lang.String",
+    "description": "A description for 'license.signing.keys.key-2.expiry-date'"
+  }
+]}
